@@ -6,11 +6,8 @@ This is a portfolio project built with Python, Streamlit, and the OpenAI API to 
 
 ## 🚀 Demo
 
-
-
-*(Insert a screenshot or, even better, a 1-minute GIF of you uploading a PDF and getting the Excel file.)*
-
----
+#link for the demonstration video.
+[https://drive.google.com/file/d/1mcTtAVEJl1EVlY32wAEETR4QiRzHTGEX/view?usp=drivesdk](https://drive.google.com/file/d/1mcTtAVEJl1EVlY32wAEETR4QiRzHTGEX/view?usp=drivesdk)
 
 ## 🎯 The Problem This Solves
 
@@ -56,7 +53,8 @@ Follow these steps to set up and run the project on your own machine.
 ### 2. Clone & Set Up
 
 # Clone the repository
-git clone [https://github.com/YOUR-USERNAME/ai-invoice-parser.git](https://github.com/YOUR-USERNAME/ai-invoice-parser.git)
+git clone [https://github.com/JeetBangari/Smart-Invoice-Parser/blob/main/App%20Code](https://github.com/JeetBangari/Smart-Invoice-Parser/blob/main/App%20Code)
+
 cd ai-invoice-parser
 
 # Create and activate a virtual environment
@@ -65,7 +63,7 @@ py -3.13 -m venv venv
 .\venv\Scripts\activate
 
 # Install the required libraries
-pip install -r requirements.txt
+pip install openai streamlit pypdf pandas openpyxl
 
 #Running the app
-After copying the code run streamlit run your_file_name.py
+After copying the code run, "streamlit run your_file_name.py"
