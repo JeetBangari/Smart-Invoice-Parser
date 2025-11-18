@@ -1,0 +1,122 @@
+import streamlit as st
+import pypdf
+import pandas as pd
+import openai  # <-- 1. This is the correct import for the old version
+from io import BytesIO
+import json
+
+# --- CONFIGURATION ---
+# 2. This is the old way to set the API key
+try:
+    openai.api_key = "YOUR_OPEN_API_KEY" #Remove 'YOUR_OPEN_API_KEY' and paste your API key in the double quotes.
+except Exception as e:
+    st.error("Please provide a valid OpenAI API Key.")
+
+
+# --- AI MODEL & PROMPT ---
+def get_openai_response(text, prompt):
+    try:
+        # 3. This is the old way to call the API
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",
+            messages=[
+                {"role": "system", "content": prompt},
+                {"role": "user", "content": text}
+            ],
+            temperature=0
+        )
+        return response.choices[0].message.content
+    except Exception as e:
+        st.error(f"Error calling OpenAI API: {e}")
+        return None
+
+# This is the "magic" prompt.
+extraction_prompt = """
+You are an expert in invoice data extraction.
+From the following invoice text, extract these exact fields:
+1.  Invoice Number
+2.  Vendor Name
+3.  Invoice Date
+4.  Total Amount
+
+Return the data ONLY in a clean, valid JSON format, like this:
+{
+  "Invoice Number": "INV-1234",
+  "Vendor Name": "Supplier Inc.",
+  "Invoice Date": "2025-11-15",
+  "Total Amount": "1500.00"
+}
+"""
+
+# --- HELPER FUNCTIONS ---
+def extract_text_from_pdf(pdf_file):
+    try:
+        pdf_reader = pypdf.PdfReader(pdf_file)
+        text = ""
+        for page in pdf_reader.pages:
+            text += page.extract_text()
+        return text
+    except Exception as e:
+        st.error(f"Error reading PDF: {e}")
+        return None
+
+def convert_to_excel(data_list):
+    if not data_list:
+        return None
+    df = pd.DataFrame(data_list)
+    output = BytesIO()
+    with pd.ExcelWriter(output, engine='openpyxl') as writer:
+        df.to_excel(writer, index=False, sheet_name='Extracted_Data')
+    processed_data = output.getvalue()
+    return processed_data
+
+# --- STREAMLIT APP ---
+st.set_page_config(page_title="Smart Invoice Parser 🧾", layout="wide")
+st.title("🧾 Smart Invoice Parser")
+st.markdown("Upload one or more PDF invoices, and I'll extract the key data into an Excel file.")
+
+uploaded_files = st.file_uploader("Choose your PDF invoice(s)", 
+                                  type="pdf", 
+                                  accept_multiple_files=True)
+
+if uploaded_files:
+    if st.button("🚀 Process Invoices"):
+        with st.spinner("Processing... this might take a moment..."):
+            extracted_data_list = []
+            
+            for pdf_file in uploaded_files:
+                st.write(f"--- Processing: `{pdf_file.name}` ---")
+                
+                raw_text = extract_text_from_pdf(pdf_file)
+                
+                if raw_text:
+                    ai_response_text = None 
+                    try:
+                        ai_response_text = get_openai_response(raw_text, extraction_prompt)
+                        
+                        if ai_response_text:
+                            clean_json_text = ai_response_text.strip().replace("```json", "").replace("```", "")
+                            data_dict = json.loads(clean_json_text)
+                            extracted_data_list.append(data_dict)
+                            st.json(data_dict) 
+                        else:
+                            st.error(f"Could not get a response from AI for {pdf_file.name}")
+                        
+                    except Exception as e:
+                        st.error(f"Error processing AI response for {pdf_file.name}: {e}")
+                        if ai_response_text:
+                            st.write("AI Response (that caused the error):")
+                            st.code(ai_response_text)
+            
+            if extracted_data_list:
+                excel_data = convert_to_excel(extracted_data_list)
+                st.success(f"Successfully processed {len(extracted_data_list)} invoice(s)!")
+                
+                st.download_button(
+                    label="📥 Download Excel Report",
+                    data=excel_data,
+                    file_name="invoice_data_report.xlsx",
+                    mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+                )
+            else:
+                st.warning("No data was extracted. Please check your PDFs.")
